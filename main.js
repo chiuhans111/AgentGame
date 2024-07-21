@@ -11,18 +11,21 @@ let ctx = canvas.getContext('2d')
 
 document.body.append(canvas)
 
-// let agent = new PlayerAgent(game, 50, 50)
-// game.agents.push(agent)
+
 
 const margin = 50
 
 let AIAgents = []
+let total_amount = 10
 
-for (let i = 0; i < 20; i++)
+for (let i = 0; i < total_amount; i++)
     AIAgents.push(new AIAgent(null, 0, 0))
 
 function initialize_game() {
     const game = new Game()
+
+    // let agent = new PlayerAgent(game, 50, 50)
+    // game.agents.push(agent)
 
     for (let i = 0; i < 4; i++)
         game.walls.push(new Wall(
@@ -42,30 +45,29 @@ function initialize_game() {
         agent.x = Math.random() * (width - margin * 2) + margin
         agent.y = Math.random() * (height - margin * 2) + margin
         agent.initialize(game)
-        agent.score = 0
+        agent.score = agent.score * 0.3
         game.agents.push(agent)
         index += 1
     }
 
     return game
 }
-
 let game = initialize_game()
 let game_timer = 0
-let game_time = 500
-let SPEED_UP = 1
+let game_time = 100
+let speed_up = 1
 function main_loop() {
     requestAnimationFrame(main_loop)
+    console.log(AIAgents[0].score)
 
-    for (let iteration = 0; iteration < SPEED_UP; iteration++) {
+    for (let iteration = 0; iteration < speed_up; iteration++) {
         if (game_timer > game_time) {
 
-            let total_amount = 20
-            let keep_amount = 10
-            let F = 0.95
+            let keep_amount = 6
+            let F = 0.5
+            let CR = 0.5
 
             AIAgents = AIAgents.sort((a, b) => b.score - a.score).slice(0, keep_amount)
-            console.log(AIAgents[0].score)
             // Evolution
             for (let i = 0; i < total_amount - keep_amount; i++) {
 
@@ -82,25 +84,35 @@ function main_loop() {
 
                 const c = index[Math.floor(Math.random() * index.length)]
 
+                const I = AIAgents[i]
                 const A = AIAgents[a]
                 const B = AIAgents[b]
                 const C = AIAgents[c]
 
                 let new_agent = new AIAgent(null, 0, 0)
-                // let mutate_coefficients = add(A.coefficients, mul(F, sub(B.coefficients, C.coefficients)))
-                let mutate_coefficients = add(
-                    mul(0.5, C.coefficients),
-                    mul(0.5, B.coefficients)
-                )
 
-                mutate_coefficients = add(
-                    mul(0.5, A.coefficients),
-                    mul(0.5, mutate_coefficients)
-                )
+                let mutation = sub(
+                    add(A.coefficients, mul(F, sub(B.coefficients, C.coefficients))),
+                    I.coefficients
+                ).map(coeff => coeff.map(row => row.map(value => {
+                    if (Math.random() < CR) return value
+                    return 0
+                })))
+
+
+                // let mutate_coefficients = add(
+                //     mul(0.5, C.coefficients),
+                //     mul(0.5, B.coefficients)
+                // )
+
+                // mutate_coefficients = add(
+                //     mul(0.5, A.coefficients),
+                //     mul(0.5, mutate_coefficients)
+                // )
 
                 new_agent.coefficients = add(
-                    mul(0.1, new_agent.coefficients),
-                    mul(0.9, mutate_coefficients)
+                    mul(0.05, new_agent.coefficients),
+                    mul(0.95, add(I.coefficients, mutation))
                 )
 
                 AIAgents.push(new_agent)

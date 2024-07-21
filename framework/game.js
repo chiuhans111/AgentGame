@@ -126,7 +126,7 @@ class Agent extends GameObject {
         this.weapon.update()
 
         // Score calculation
-        this.score += this.life / 100 * 0.01
+        // this.score += this.life / 100 * 0.01
     }
 
     collide(object, intersect) {
