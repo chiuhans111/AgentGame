@@ -44,43 +44,56 @@ class Bullet extends GameObject {
     draw(canvas, ctx) {
         drawline(ctx, this.geometry())
     }
+    dispose() {
+        this.agent = null
+    }
 }
 
 class Weapon {
     constructor(agent) {
         this.agent = agent
         this.bullet_speed = 10
-        this.cool_down_time = 5
+        this.cool_down_time = 3
         this.cool_down_timer = this.cool_down_time
         this.damage = 10
 
-        this.ammo_full = 20
-        this.ammo = this.ammo_full
+        this.bullets = 20
+        this.remain_bullets = this.bullets
         this.reload_time = 100
         this.reload_timer = 0
+
+        this.magazines = 3
     }
 
     update() {
         if (this.cool_down_timer < this.cool_down_time)
             this.cool_down_timer += 1
+
         if (this.reload_time > 0)
             this.reload_timer -= 1
 
-        if (this.ammo <= 0) {
+        if (this.remain_bullets <= 0) {
             this.reload_timer = this.reload_time
-            this.ammo = this.ammo_full
+            this.remain_bullets = this.bullets
+            this.magazines -= 1
         }
     }
 
     fire(dx, dy) {
-        if (this.cool_down_timer >= this.cool_down_time && this.reload_timer <= 0) {
-            this.cool_down_timer = 0
-            let d = Math.sqrt(dx * dx + dy * dy)
-            dx = dx / d * this.bullet_speed
-            dy = dy / d * this.bullet_speed
-            this.ammo -= 1
-            return new Bullet(this.agent, this.agent.x, this.agent.y, dx, dy, this.damage)
-        } return false
+        if (this.magazines <= 0) return false
+        if (this.cool_down_timer < this.cool_down_time) return false
+        if (this.reload_timer > 0) return false
+
+        this.cool_down_timer = 0
+        let d = Math.sqrt(dx * dx + dy * dy)
+        dx = dx / d * this.bullet_speed
+        dy = dy / d * this.bullet_speed
+        this.remain_bullets -= 1
+        return new Bullet(this.agent, this.agent.x, this.agent.y, dx, dy, this.damage)
+    }
+
+    dispose() {
+        this.agent = null
     }
 }
 
@@ -174,6 +187,12 @@ class Agent extends GameObject {
         this.x += dx
         this.y += dy
     }
+
+    dispose() {
+        this.game = null
+        this.weapon.dispose()
+        this.weapon = null
+    }
 }
 
 
@@ -212,11 +231,12 @@ class Game extends GameObject {
     }
 
     update() {
+        this.agents.filter(x => x.life <= 0).map(x => x.dispose())
         this.agents = this.agents.filter(x => x.life > 0)
         this.bullets = this.bullets.filter(x => x.life > 0)
 
-        this.agents.map(x => x.update())
-        this.bullets.map(x => x.update())
+        this.agents.filter(x => x.life > 0).map(x => x.update())
+        this.bullets.filter(x => x.life > 0).map(x => x.update())
 
         let collides = []
         for (let agent of this.agents) {
@@ -302,6 +322,14 @@ class Game extends GameObject {
         })
         casts.sort(x => x.depth)
         return casts
+    }
+
+    dispose() {
+        this.agents.filter(x => x.life > 0).map(x => x.dispose())
+        this.bullets.map(x => x.dispose())
+        this.agents = null
+        this.bullets = null
+        this.walls = null
     }
 }
 

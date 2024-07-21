@@ -2,7 +2,6 @@ const width = 1000
 const height = 500
 
 
-
 let canvas = document.createElement('canvas')
 canvas.width = width
 canvas.height = height
@@ -15,19 +14,56 @@ document.body.append(canvas)
 
 const margin = 50
 
+// Game mechanism
+let player_per_match = 5
+
+let game_timer = 0
+let game_time = 500
+
+let round = 0
+let total_round = 10
+
 let AIAgents = []
 
-let total_amount = 10
-let keep_amount = 5
+let game = null
+
+// Game Queue
+let agent_in_queue = []
+
+// Evolution
+let total_amount = 40
+let keep_amount = 20
 let F = 0.5
 let CR = 0.5
 
-for (let i = 0; i < total_amount; i++)
-    AIAgents.push(new AIAgent(null, 0, 0))
+
+// Visualizatino
+let high_score_history = []
+const history_plot = new Plot(300, 150, document.body)
+const scoreboard = new Scoreboard(document.body)
+// Other setting
+let speed_up = 1
+
+
+function first_initialization() {
+    for (let i = 0; i < total_amount; i++)
+        AIAgents.push(new AIAgent(null, 0, 0))
+    initialize_game()
+}
+
+function initialize_round() {
+    round += 1
+    agent_in_queue = []
+    for (let agent of AIAgents) agent_in_queue.push(agent)
+}
+
 
 function initialize_game() {
-    const game = new Game()
-
+    if (game !== null) {
+        game.dispose()
+        game = null
+    }
+    game = new Game()
     // let agent = new PlayerAgent(game, 50, 50)
     // game.agents.push(agent)
 
@@ -44,8 +80,24 @@ function initialize_game() {
     game.walls.push(new Wall(width, 0, width, height))
 
     let index = 0
-    for (let agent of AIAgents) {
-        agent.index = index
+
+    const agent_queued = []
+
+    for (let i = 0; i < player_per_match; i++) {
+        const len = agent_in_queue.length
+        if (len > 0) {
+            const random_index = Math.floor(Math.random() * len)
+            agent_queued.push(agent_in_queue[random_index])
+            agent_in_queue.splice(random_index, 1)
+        } else {
+            let agent = new AIAgent(null, 0, 0)
+            const random_index = Math.floor(Math.random() * AIAgents.length)
+            agent.coefficients = AIAgents[random_index].coefficients
+            agent_queued.push(agent)
+        }
+    }
+
+    for (let agent of agent_queued) {
         agent.x = Math.random() * (width - margin * 2) + margin
         agent.y = Math.random() * (height - margin * 2) + margin
         agent.initialize(game)
@@ -53,98 +105,118 @@ function initialize_game() {
         index += 1
     }
 
-    return game
+    game_timer = 0
+
 }
-let game = initialize_game()
-let game_timer = 0
-let game_time = 200
-let speed_up = 1
-let round = 0
-let total_round = 10
+
+
+function do_mutation() {
+    AIAgents = AIAgents.sort((a, b) => b.score - a.score).slice(0, keep_amount)
+    high_score_history.push(AIAgents[0].score)
+
+    AIAgents.map((x, i) => x.index = i)
+    // Evolution
+    for (let i = 0; i < total_amount - keep_amount; i++) {
+
+        let index = []
+        for (let j = 0; j < keep_amount; j++) index.push(j)
+
+        index = index.filter(x => x !== i)
+
+        const a = index[Math.floor(Math.random() * index.length)]
+        index = index.filter(x => x !== a)
+
+        const b = index[Math.floor(Math.random() * index.length)]
+        index = index.filter(x => x !== b)
+
+        const c = index[Math.floor(Math.random() * index.length)]
+
+        const I = AIAgents[i]
+        const A = AIAgents[a]
+        const B = AIAgents[b]
+        const C = AIAgents[c]
+
+        let new_agent = new AIAgent(null, 0, 0)
+
+        let mutation = sub(
+            add(A.coefficients, mul(F, sub(B.coefficients, C.coefficients))),
+            I.coefficients
+        ).map(coeff => coeff.map(row => row.map(value => {
+            if (Math.random() < CR) return value
+            return 0
+        })))
+
+
+        // let mutate_coefficients = add(
+        //     mul(0.5, C.coefficients),
+        //     mul(0.5, B.coefficients)
+        // )
+
+        // mutate_coefficients = add(
+        //     mul(0.5, A.coefficients),
+        //     mul(0.5, mutate_coefficients)
+        // )
+
+        new_agent.coefficients = add(
+            mul(0.05, new_agent.coefficients),
+            mul(0.95, add(I.coefficients, mutation))
+        )
+
+        AIAgents.push(new_agent)
+        // break
+    }
+}
+
+function initialize_new_epoch() {
+    round = 0
+    do_mutation()
+    for (let agent of AIAgents) {
+        agent.score = 0
+    }
+}
+
+
+function is_round_finished() {
+    return agent_in_queue.length == 0
+}
+
+function is_epoch_finished() {
+    return round > total_round
+}
+
+function is_game_finished() {
+    return game_timer > game_time
+}
+
+
 
 function main_loop() {
-    requestAnimationFrame(main_loop)
+    setTimeout(() => {
+        main_loop()
+    }, 1000 / 50);
 
     for (let iteration = 0; iteration < speed_up; iteration++) {
 
-        if (game_timer > game_time) {
-            round += 1
-            if (round >= total_round) {
-                round = 0
+        if (is_game_finished()) {
+            if (is_round_finished())
+                initialize_round()
 
+            if (is_epoch_finished())
+                initialize_new_epoch()
 
-                AIAgents = AIAgents.sort((a, b) => b.score - a.score).slice(0, keep_amount)
-                console.log(AIAgents[0].score)
-                // Evolution
-                for (let i = 0; i < total_amount - keep_amount; i++) {
-
-                    let index = []
-                    for (let j = 0; j < keep_amount; j++) index.push(j)
-
-                    index = index.filter(x => x !== i)
-
-                    const a = index[Math.floor(Math.random() * index.length)]
-                    index = index.filter(x => x !== a)
-
-                    const b = index[Math.floor(Math.random() * index.length)]
-                    index = index.filter(x => x !== b)
-
-                    const c = index[Math.floor(Math.random() * index.length)]
-
-                    const I = AIAgents[i]
-                    const A = AIAgents[a]
-                    const B = AIAgents[b]
-                    const C = AIAgents[c]
-
-                    let new_agent = new AIAgent(null, 0, 0)
-
-                    let mutation = sub(
-                        add(A.coefficients, mul(F, sub(B.coefficients, C.coefficients))),
-                        I.coefficients
-                    ).map(coeff => coeff.map(row => row.map(value => {
-                        if (Math.random() < CR) return value
-                        return 0
-                    })))
-
-
-                    // let mutate_coefficients = add(
-                    //     mul(0.5, C.coefficients),
-                    //     mul(0.5, B.coefficients)
-                    // )
-
-                    // mutate_coefficients = add(
-                    //     mul(0.5, A.coefficients),
-                    //     mul(0.5, mutate_coefficients)
-                    // )
-
-                    new_agent.coefficients = add(
-                        mul(0.05, new_agent.coefficients),
-                        mul(0.95, add(I.coefficients, mutation))
-                    )
-
-                    AIAgents.push(new_agent)
-                    // break
-                }
-
-                for (let agent of AIAgents) {
-                    agent.score = 0
-                }
-            }
-
-
-
-            game = initialize_game()
-            game_timer = 0
+            initialize_game()
         }
 
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
         game.update()
         game_timer += 1
     }
 
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
     game.draw(canvas, ctx)
+    high_score_history = history_plot.plot1d(high_score_history)
+    scoreboard.update(AIAgents)
 }
 
+first_initialization()
 main_loop()
 

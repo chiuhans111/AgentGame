@@ -112,7 +112,7 @@ class AIAgent extends Agent {
 
             this.coefficients = []
             this.coefficients.push(this.random_weight(
-                this.RAY_SAMPLES * 2 + 4 + this.FEED_BACK_SIZE, // life, ammo, reload, score
+                this.RAY_SAMPLES * 2 + 4 + this.FEED_BACK_SIZE, // life, bullets, reload, score
                 this.KERNAL_SIZE,
                 -1, 1
             ))
@@ -137,7 +137,7 @@ class AIAgent extends Agent {
             // ...this.sees.see_bullet,
             ...this.sees.see_wall,
             this.life / 100,
-            this.weapon.ammo / this.weapon.ammo_full,
+            this.weapon.remain_bullets / this.weapon.bullets,
             this.weapon.reload_timer / this.weapon.reload_time,
             this.score,
             ...this.feed_back_signal
@@ -160,7 +160,7 @@ class AIAgent extends Agent {
         const mdx = (fdx * output[0] - fdy * output[1])
         const mdy = (fdy * output[0] + fdx * output[1])
 
-        let dr = output[2]
+        let dr = output[2] * 0.1
 
         // const max_dr = 0.5
         // if (dr > max_dr) dr = max_dr
