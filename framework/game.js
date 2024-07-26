@@ -53,16 +53,16 @@ class Weapon {
     constructor(agent) {
         this.agent = agent
         this.bullet_speed = 10
-        this.cool_down_time = 3
+        this.cool_down_time = 2
         this.cool_down_timer = this.cool_down_time
         this.damage = 10
 
         this.bullets = 20
         this.remain_bullets = this.bullets
-        this.reload_time = 100
+        this.reload_time = 20
         this.reload_timer = 0
 
-        this.magazines = 3
+        this.magazines = 2
     }
 
     update() {
@@ -190,7 +190,8 @@ class Agent extends GameObject {
 
     dispose() {
         this.game = null
-        this.weapon.dispose()
+        if (this.weapon !== null)
+            this.weapon.dispose()
         this.weapon = null
     }
 }
@@ -231,7 +232,7 @@ class Game extends GameObject {
     }
 
     update() {
-        this.agents.filter(x => x.life <= 0).map(x => x.dispose())
+        // this.agents.filter(x => x.life <= 0).map(x => x.dispose())
         this.agents = this.agents.filter(x => x.life > 0)
         this.bullets = this.bullets.filter(x => x.life > 0)
 
@@ -325,7 +326,7 @@ class Game extends GameObject {
     }
 
     dispose() {
-        this.agents.filter(x => x.life > 0).map(x => x.dispose())
+        // this.agents.filter(x => x.life > 0).map(x => x.dispose())
         this.bullets.map(x => x.dispose())
         this.agents = null
         this.bullets = null

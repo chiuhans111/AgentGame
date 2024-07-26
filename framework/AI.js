@@ -6,12 +6,10 @@ class AIAgent extends Agent {
         this.FOV = 60 / 360
         this.RAY_SAMPLES = 16
         this.VIEW_DISTANCE = 300
-        this.FEED_BACK_SIZE = 6
-        this.KERNAL_SIZE = 10
+        this.FEED_BACK_SIZE = 10
+        this.KERNAL_SIZE = 20
         this.feed_back_signal = []
-
         this.coefficients = []
-
         this.ai_initiate()
     }
 
@@ -204,5 +202,12 @@ class AIAgent extends Agent {
         // ctx.restore()
 
         super.draw(canvas, ctx)
+    }
+
+    dispose() {
+        super.dispose()
+        this.sees = null
+        this.feed_back_signal = null
+        this.coefficients = null
     }
 }

@@ -15,13 +15,13 @@ document.body.append(canvas)
 const margin = 50
 
 // Game mechanism
-let player_per_match = 5
+let player_per_match = 10
 
 let game_timer = 0
 let game_time = 500
 
 let round = 0
-let total_round = 10
+let total_round = 3
 
 let AIAgents = []
 
@@ -48,6 +48,8 @@ let speed_up = 1
 function first_initialization() {
     for (let i = 0; i < total_amount; i++)
         AIAgents.push(new AIAgent(null, 0, 0))
+    // initialize_new_epoch()
+    initialize_round()
     initialize_game()
 }
 
@@ -111,7 +113,10 @@ function initialize_game() {
 
 
 function do_mutation() {
-    AIAgents = AIAgents.sort((a, b) => b.score - a.score).slice(0, keep_amount)
+
+    AIAgents = AIAgents.sort((a, b) => b.score - a.score)
+    AIAgents.splice(keep_amount, AIAgents.length - keep_amount).map(x => x.dispose())
+
     high_score_history.push(AIAgents[0].score)
 
     AIAgents.map((x, i) => x.index = i)
@@ -198,11 +203,14 @@ function main_loop() {
     for (let iteration = 0; iteration < speed_up; iteration++) {
 
         if (is_game_finished()) {
-            if (is_round_finished())
-                initialize_round()
 
-            if (is_epoch_finished())
-                initialize_new_epoch()
+            if (is_round_finished()) {
+
+                if (is_epoch_finished())
+                    initialize_new_epoch()
+
+                initialize_round()
+            }
 
             initialize_game()
         }
@@ -214,7 +222,7 @@ function main_loop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     game.draw(canvas, ctx)
     high_score_history = history_plot.plot1d(high_score_history)
-    scoreboard.update(AIAgents)
+    scoreboard.update(AIAgents, agent_in_queue)
 }
 
 first_initialization()

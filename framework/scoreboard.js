@@ -8,7 +8,7 @@ class Scoreboard {
         this.canvas_list = []
     }
 
-    update(agents) {
+    update(agents, agent_in_queue) {
         this.div.innerHTML = ''
         for (let i = 0; i < agents.length; i++) {
             const row = document.createElement('div')
@@ -29,8 +29,14 @@ class Scoreboard {
             ctx.reset()
             ctx.clearRect(0, 0, canvas.width, canvas.height)
             ctx.translate(canvas.width / 2 - agent.x, canvas.height / 2 - agent.y)
-            if (agent.game !== null)
+
+            if(agent_in_queue.includes(agent)){
+                row.style.backgroundColor = '#ffffdd'
+            }
+            if (agent.game !== null && agent.game.agents !== null) {
+                row.style.backgroundColor = '#ffddaa'
                 agent.game.draw(canvas, ctx)
+            }
             else agent.draw(canvas, ctx)
             row.append(canvas)
 
